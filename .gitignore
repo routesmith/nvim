@@ -1,0 +1,19 @@
+# Plugin manager
+lazy-lock.json
+
+# LSP/Mason installed tools
+plugin/
+
+# Neovim runtime files
+.netrwhist
+*.swp
+*.swo
+*~
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Logs and caches
+*.log
+.luarc.json
