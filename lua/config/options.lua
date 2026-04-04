@@ -87,6 +87,10 @@ vim.o.undofile = true
 vim.o.ignorecase = true
 vim.o.smartcase = true
 
+-- Folding levels open by default
+vim.o.foldlevel = 99
+vim.o.foldlevelstart = 99
+--
 -- Keep signcolumn on by default
 vim.o.signcolumn = "yes"
 
