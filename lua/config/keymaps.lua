@@ -46,12 +46,32 @@ vim.keymap.set("n", "DW", [[:%s/^[\t ]*$//g<CR>]], { desc = "Clear lines with on
 
 vim.keymap.set("n", "DT", [[o<C-R>=strftime("%a %m-%d-%Y:")<CR><Esc>]], { desc = "Insert current date" })
 vim.keymap.set("n", "UT", [[o<C-R>=strftime("%a %b %d %T %Z %Y")<CR><Esc>]], { desc = "Insert current UTC time" })
-vim.keymap.set(
-	"n",
-	"CT",
-	[[o<C-R>=strftime("%a %b %d @ %T %Z (%z) %Y")<CR><Esc>]],
-	{ desc = "Insert local time with UTC offset" }
-)
+vim.keymap.set("n", "CT", [[o<C-R>=strftime("%a %b %d @ %T %Z (%z) %Y")<CR><Esc>]], { desc = "Insert local time with UTC offset" })
+
+-- Split selection by character
+-- Usage: select text, press S, then the delimiter (e.g., 's' for space, ',' for comma)
+-- Pressing Enter will prompt for a custom multi-character delimiter.
+vim.keymap.set("x", "S", function()
+	local char = vim.fn.getcharstr()
+	local pattern = char
+	if char == "s" or char == " " then
+		pattern = [[\s\+]]
+	elseif char == "c" then
+		pattern = [[,]]
+	elseif char == "." then
+		pattern = [[\.]]
+	elseif char == "\r" or char == "\n" then
+		vim.ui.input({ prompt = "Split by: " }, function(input)
+			if input == nil or input == "" then
+				return
+			end
+			pcall(vim.cmd, string.format("'<,'>s/%s/\\r/g", input))
+		end)
+		return
+	end
+	pcall(vim.cmd, string.format("'<,'>s/%s/\\r/g", pattern))
+	vim.cmd("nohlsearch")
+end, { desc = "Split selection by character" })
 
 -- Keeping the cursor centered.
 -- vim.keymap.set('n', '<C-d>', '<C-d>zz', { desc = 'Scroll downwards' })
