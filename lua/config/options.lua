@@ -36,6 +36,16 @@ if is_windows then
 		cache_enabled = 0,
 	}
 else
+	local osc52 = require("vim.ui.clipboard.osc52")
+	vim.g.clipboard = {
+		name = "OSC52 + xclip",
+		copy = { ["+"] = osc52.copy("+"), ["*"] = osc52.copy("*") },
+		paste = {
+			["+"] = "xclip -selection clipboard -out",
+			["*"] = "xclip -selection primary -out",
+		},
+		cache_enabled = 0,
+	}
 	vim.o.clipboard = "unnamedplus"
 end
 
