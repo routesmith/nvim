@@ -24,7 +24,9 @@ vim.o.mouse = "a"
 -- Don't show the mode, since it's already in the status line
 vim.o.showmode = false
 
-local is_windows = vim.loop.os_uname().sysname == "Windows_NT"
+local sysname = vim.loop.os_uname().sysname
+local is_windows = sysname == "Windows_NT"
+local is_macos = sysname == "Darwin"
 
 -- Set clipboard
 if is_windows then
@@ -33,6 +35,16 @@ if is_windows then
 		name = "win32yank",
 		copy = { ["+"] = "win32yank.exe -i", ["*"] = "win32yank.exe -i" },
 		paste = { ["+"] = "win32yank.exe -o", ["*"] = "win32yank.exe -o" },
+		cache_enabled = 0,
+	}
+elseif is_macos then
+	-- Match the dotfiles clipboard policy: copy through the local clipper
+	-- bridge when available, paste from the native macOS clipboard.
+	local copy_command = vim.fn.executable("nc") == 1 and "nc localhost 8377" or "pbcopy"
+	vim.g.clipboard = {
+		name = copy_command:match("^nc") and "clipper" or "macOS",
+		copy = { ["+"] = copy_command, ["*"] = copy_command },
+		paste = { ["+"] = "pbpaste", ["*"] = "pbpaste" },
 		cache_enabled = 0,
 	}
 else
@@ -46,8 +58,8 @@ else
 		},
 		cache_enabled = 0,
 	}
-	vim.o.clipboard = "unnamedplus"
 end
+vim.o.clipboard = "unnamedplus"
 
 -- Set shell
 if is_windows then
