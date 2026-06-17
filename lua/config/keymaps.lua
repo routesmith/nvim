@@ -86,3 +86,28 @@ vim.keymap.set("n", "gX", function()
 		vim.ui.open(uri)
 	end
 end, { desc = "Open URI under cursor" })
+
+-- Wispr Flow dictation into Neovim.
+-- Wispr auto-pastes by sending Ctrl+V, which Neovim treats as insert-literal
+-- (i_CTRL-V) -> a stray "^" and no text. Rebind INSERT-mode <C-v> to pull the
+-- last transcript straight from Wispr's SQLite and insert it at the cursor.
+-- The literal-insert you'd lose is still on <C-q> by default (:help i_CTRL-Q),
+-- and normal-mode <C-v> (visual block) is untouched. Mirror of the zsh ^V fix.
+vim.keymap.set("i", "<C-v>", function()
+	local out = vim.fn.system({ vim.fn.expand("~/.zsh/bin/wispr-last"), "--no-copy" })
+	out = (out or ""):gsub("[\r\n]+$", "")
+	if out == "" then
+		return
+	end
+	-- suppress blink for this dictation insert (its `enabled` in blink-cmp.lua
+	-- reads this flag) so the menu doesn't flicker. Clear after blink's debounce
+	-- window would have elapsed; hide() is belt-and-suspenders.
+	vim.g.wispr_dictating = true
+	vim.api.nvim_paste(out, true, -1)
+	vim.defer_fn(function()
+		vim.g.wispr_dictating = false
+		pcall(function()
+			require("blink.cmp").hide()
+		end)
+	end, 300)
+end, { desc = "Wispr: insert last transcript" })

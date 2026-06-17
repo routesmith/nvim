@@ -36,9 +36,16 @@ return {
 		-- See :h blink-cmp-config-keymap for defining your own keymap
 
 		keymap = {
-			preset = "default",
+			preset = "super-tab", -- Tab accepts the completion (S-Tab / C-n / C-p still navigate)
 			-- ["<C-q>"] = { "show", "show_documentation", "hide_documentation" },
 		},
+
+		-- Suppress completion while a Wispr dictation is being inserted (the <C-v>
+		-- map in keymaps.lua sets vim.g.wispr_dictating) so the menu doesn't flicker
+		-- on dictation. Mirrors blink's default buftype check.
+		enabled = function()
+			return vim.bo.buftype ~= "prompt" and not vim.g.wispr_dictating
+		end,
 
 		-- Experimental feature
 		signature = {
