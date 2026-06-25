@@ -56,10 +56,23 @@ else
 			["+"] = "xclip -selection clipboard -out",
 			["*"] = "xclip -selection primary -out",
 		},
-		cache_enabled = 0,
+		cache_enabled = 1,
 	}
 end
-vim.o.clipboard = "unnamedplus"
+-- Keep dd/yy/p on Neovim's internal registers so linewise survives (routing
+-- through +/xclip drops the linewise flag -> charwise inline paste). Mirror
+-- yanks (not deletes) to the system clipboard one-way so Windows still gets
+-- every yank; p never reads + back, so the regtype stays intact.
+vim.o.clipboard = ""
+vim.api.nvim_create_autocmd("TextYankPost", {
+	group = vim.api.nvim_create_augroup("YankToSystemClipboard", { clear = true }),
+	callback = function()
+		local e = vim.v.event
+		if e.operator == "y" then
+			vim.fn.setreg("+", e.regcontents, e.regtype)
+		end
+	end,
+})
 
 -- Set shell
 if is_windows then

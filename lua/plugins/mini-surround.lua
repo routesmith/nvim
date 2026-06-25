@@ -21,17 +21,6 @@ return {
 				suffix_last = "l", -- Suffix to search with "prev" method
 				suffix_next = "n", -- Suffix to search with "next" method
 			},
-			--          mappings = {
-			-- 	add = "gsa", -- Add surrounding
-			-- 	delete = "gsd", -- Delete surrounding
-			-- 	replace = "gsr", -- Replace surrounding
-			-- 	find = "gsf", -- Find right surrounding
-			-- 	find_left = "gsF", -- Find left surrounding
-			-- 	highlight = "gsh", -- Highlight surrounding
-			-- 	update_n_lines = "gsn", -- Update `n_lines`
-			-- 	suffix_last = "l", -- Suffix to search with "prev" method
-			-- 	suffix_next = "n", -- Suffix to search with "next" method
-			-- },
 		})
 	end,
 }

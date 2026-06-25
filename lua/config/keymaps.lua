@@ -7,9 +7,13 @@
 -- Pull in zoxide_nav
 require("config.zoxide_nav").setup()
 
--- Do nothing with a naked s
-vim.keymap.set("n", "s", "<Nop>", { desc = "Unassigned (was s: substitute character, juse use cl)" })
-vim.keymap.set("n", "S", "<Nop>", { desc = "Unassigned (was S: substitute line, juse use cc)" })
+-- Naked `S` is unbound in normal mode (use `cc` instead). `s` is left as
+-- Vim's default substitute-char so it can serve as the prefix for
+-- mini.surround (`sa`/`sd`/`sr`/`sf`/`sF`/`sh`); a longer prefix like
+-- `gs*` is fragile under timeoutlen because of the extra waiting gap
+-- between `g` and `s`. If you prefer change-letter, use `cl` instead of
+-- `s`.
+vim.keymap.set("n", "S", "<Nop>", { desc = "Unassigned (was S: substitute line, use cc)" })
 
 -- Open the package manager.
 vim.keymap.set("n", "<leader>L", "<cmd>Lazy<cr>", { desc = "[L]azy" })
@@ -47,6 +51,24 @@ vim.keymap.set("n", "DW", [[:%s/^[\t ]*$//g<CR>]], { desc = "Clear lines with on
 vim.keymap.set("n", "DT", [[o<C-R>=strftime("%a %m-%d-%Y:")<CR><Esc>]], { desc = "Insert current date" })
 vim.keymap.set("n", "UT", [[o<C-R>=strftime("%a %b %d %T %Z %Y")<CR><Esc>]], { desc = "Insert current UTC time" })
 vim.keymap.set("n", "CT", [[o<C-R>=strftime("%a %b %d @ %T %Z (%z) %Y")<CR><Esc>]], { desc = "Insert local time with UTC offset" })
+
+-- j/k move by screen line (works correctly with soft-wrapped lines).
+-- Operators like `dj` / visual `Vj` then also operate on screen lines,
+-- which is the consistent end-state.
+vim.keymap.set({ "n", "v", "o" }, "j", "gj")
+vim.keymap.set({ "n", "v", "o" }, "k", "gk")
+
+-- System clipboard (the + register) on a sane key, since clipboard="" keeps
+-- normal y/p on the internal registers. <leader>p/P paste from Windows,
+-- <leader>y yanks to Windows. So nobody ever types "+p again.
+vim.keymap.set({ "n", "v" }, "<leader>p", '"+p', { desc = "[p]aste from system clipboard" })
+vim.keymap.set({ "n", "v" }, "<leader>P", '"+P', { desc = "[P]aste before from system clipboard" })
+vim.keymap.set({ "n", "v" }, "<leader>y", '"+y', { desc = "[y]ank to system clipboard" })
+
+-- Strip HTML/XML tags from the current visual selection in one shot.
+-- `:` from visual mode auto-inserts the `'<,'>` range, so we just append
+-- the substitution. inccommand shows the live preview while you type.
+vim.keymap.set("x", "<leader>st", ":s/<[^>]*>//g<CR>", { desc = "[s]trip [t]ags from selection" })
 
 -- Split selection by character
 -- Usage: select text, press S, then the delimiter (e.g., 's' for space, ',' for comma)
@@ -94,7 +116,7 @@ end, { desc = "Open URI under cursor" })
 -- The literal-insert you'd lose is still on <C-q> by default (:help i_CTRL-Q),
 -- and normal-mode <C-v> (visual block) is untouched. Mirror of the zsh ^V fix.
 vim.keymap.set("i", "<C-v>", function()
-	local out = vim.fn.system({ vim.fn.expand("~/.zsh/bin/wispr-last"), "--no-copy" })
+	local out = vim.fn.system({ vim.fn.expand("~/.zsh/bin/wispr-last"), "--no-copy", "--raw" })
 	out = (out or ""):gsub("[\r\n]+$", "")
 	if out == "" then
 		return
