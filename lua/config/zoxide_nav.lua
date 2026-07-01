@@ -1,5 +1,5 @@
 -- ~/.config/nvim/lua/config/zoxide_nav.lua
--- Purpose: FZF-Lua-powered Zoxide integration for mini.files and oil.nvim.
+-- Purpose: FZF-Lua-powered Zoxide integration for find (files/grep) and mini.files.
 --          Supports cross-platform preview fallback between Unix and PowerShell.
 -- Requires: fzf-lua, zoxide, optionally bat, ls/head, or PowerShell
 
@@ -48,57 +48,77 @@ local function preview_dir(dir)
 	end
 end
 
--- FZF-Lua Zoxide picker with platform-aware preview
-local function zoxide_fzf_picker(open_callback)
+-- Set the tab-local working directory (":tcd") so CWD-scoped pickers,
+-- statusline, and LSP root heuristics all follow the picked dir.
+local function tcd(dir)
+	vim.cmd("tcd " .. vim.fn.fnameescape(dir))
+end
+
+-- FZF-Lua Zoxide picker with platform-aware preview.
+-- actions_map: { ["default"] = fn(dir), ["ctrl-g"] = fn(dir), ... }
+local function zoxide_fzf_picker(actions_map)
 	local fzf = require("fzf-lua")
+
+	local actions = {}
+	for key, cb in pairs(actions_map) do
+		actions[key] = function(selected)
+			local dir = parse_zoxide_path(selected[1])
+			if dir and vim.fn.isdirectory(dir) == 1 then
+				cb(dir)
+			else
+				vim.notify("Invalid or no directory selected", vim.log.levels.WARN)
+			end
+		end
+	end
 
 	fzf.fzf_exec("zoxide query -ls", {
 		prompt = "Zoxide> ",
 		preview = {
 			fn = function(lines)
-				local selected_line = lines[1]
-				local dir = parse_zoxide_path(selected_line)
+				local dir = parse_zoxide_path(lines[1])
 				return preview_dir(dir)
 			end,
 			layout = "right",
 			width = "50%",
 			wrap = false,
 		},
-		actions = {
-			["default"] = function(selected)
-				local dir = parse_zoxide_path(selected[1])
-				if dir and vim.fn.isdirectory(dir) == 1 then
-					open_callback(dir)
-				else
-					vim.notify("Invalid or no directory selected", vim.log.levels.WARN)
-				end
-			end,
-		},
+		actions = actions,
 	})
 end
 
-function M.setup()
-	-- Zoxide → mini.files
-	vim.keymap.set("n", "<leader>ze", function()
-		zoxide_fzf_picker(function(dir)
-			if pcall(require, "mini.files") then
-				require("mini.files").open(dir)
-			else
-				vim.notify("mini.files not loaded", vim.log.levels.WARN)
-			end
-		end)
-	end, { desc = "Zoxide: Open in mini.files" })
+local function open_mini_files(dir)
+	if pcall(require, "mini.files") then
+		require("mini.files").open(dir)
+	else
+		vim.notify("mini.files not loaded", vim.log.levels.WARN)
+	end
+end
 
-	-- Zoxide → Oil (float)
-	vim.keymap.set("n", "<leader>zo", function()
-		zoxide_fzf_picker(function(dir)
-			if pcall(require, "oil") then
-				vim.cmd("Oil --float " .. vim.fn.fnameescape(dir))
-			else
-				vim.notify("oil.nvim not loaded", vim.log.levels.WARN)
-			end
-		end)
-	end, { desc = "Zoxide: Open in oil.nvim (float)" })
+function M.setup()
+	-- Zoxide → find. One frecency list, verb chosen inside the picker.
+	-- Every action :tcd's the tab first so downstream CWD-scoped maps follow.
+	vim.keymap.set("n", "<leader>zf", function()
+		zoxide_fzf_picker({
+			["default"] = function(dir)
+				tcd(dir)
+				require("fzf-lua").files()
+			end,
+			["ctrl-g"] = function(dir)
+				tcd(dir)
+				require("fzf-lua").live_grep()
+			end,
+			["ctrl-e"] = open_mini_files,
+			["ctrl-d"] = function(dir)
+				tcd(dir)
+				vim.notify("cwd → " .. dir)
+			end,
+		})
+	end, { desc = "Zoxide: tcd + find (enter=files, C-g=grep, C-e=mini, C-d=cd)" })
+
+	-- Zoxide → mini.files (browse only, no tcd)
+	vim.keymap.set("n", "<leader>ze", function()
+		zoxide_fzf_picker({ ["default"] = open_mini_files })
+	end, { desc = "Zoxide: Open in mini.files" })
 end
 
 return M

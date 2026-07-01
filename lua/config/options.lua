@@ -53,8 +53,10 @@ else
 		name = "OSC52 + xclip",
 		copy = { ["+"] = osc52.copy("+"), ["*"] = osc52.copy("*") },
 		paste = {
-			["+"] = "xclip -selection clipboard -out",
-			["*"] = "xclip -selection primary -out",
+			-- Request UTF8_STRING: WSLg/Wayland owners don't offer the legacy
+			-- STRING target, which caused "target STRING not available".
+			["+"] = "xclip -selection clipboard -out -t UTF8_STRING",
+			["*"] = "xclip -selection primary -out -t UTF8_STRING",
 		},
 		cache_enabled = 1,
 	}

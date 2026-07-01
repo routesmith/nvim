@@ -6,88 +6,17 @@
 
 -- NOTE: https://lazy.folke.io/spec/lazy_loading#%EF%B8%8F-lazy-key-mappings
 
--- Directory / file excludes to reuse for functions (define new ones if need be)
-local excludes = {
-	".git",
-	".svn",
-	".hg",
-	"node_modules",
-	".npm",
-	".yarn",
-	"venv",
-	".venv",
-	"__pycache__",
-	".cargo",
-	"target",
-	".m2",
-	".gradle",
-	".bundle",
-	"vendor",
-	".cache",
-	".local/share",
-	".local/state",
-	".var",
-	".mozilla",
-	".config/google-chrome",
-	".thunderbird",
-	".vscode",
-	".config/Code",
-	".Trash",
-	".thumbnails",
-	".next",
-	".nuxt",
-	".parcel-cache",
-	".idea",
-	".terraform",
-	".direnv",
-	".zcompdump*",
-	".oh-my-zsh",
-	".viminfo",
-	".zsh_history",
-}
-
--- Build rg --glob exclusions
-local glob_excludes = {}
-for _, pattern in ipairs(excludes) do
-	table.insert(glob_excludes, "--glob")
-	table.insert(glob_excludes, "!" .. pattern)
+-- find ≡ search: one <leader>f prefix. Filename-match and content-match are the
+-- same intent, so they live in one picker with an in-place flip (C-g files→grep,
+-- C-f grep→files) instead of two prefixes to remember. opts.last_query carries
+-- the typed text across the flip when fzf-lua provides it.
+-- ponytail: query carry-over degrades to "" on older fzf-lua; flip still works.
+local function to_grep(_, opts)
+	require("fzf-lua").live_grep({ query = opts and opts.last_query or "" })
 end
 
-local function grep_dotfiles()
-	local home = vim.fn.expand("~")
-
-	require("fzf-lua").live_grep({
-		cwd = home,
-		hidden = true,
-		silent = true,
-		rg_opts = table.concat(glob_excludes, " "),
-	})
-end
-
-local function choose_root_and_grep()
-	local fd_root = vim.fn.expand("~") -- start scanning from home
-
-	-- Assemble excludes into CLI format
-	local exclude_strs = {}
-	for _, entry in ipairs(excludes) do
-		table.insert(exclude_strs, string.format("--exclude '%s'", entry))
-	end
-
-	-- Build command string with scan root
-	local fd_cmd =
-		string.format("fd --type d --hidden --follow --color never %s . '%s'", table.concat(exclude_strs, " "), fd_root)
-
-	require("fzf-lua").fzf_exec(fd_cmd, {
-		prompt = "Choose directory to grep:",
-		actions = {
-			["default"] = function(selected)
-				require("fzf-lua").live_grep({
-					cwd = selected[1],
-					silent = true,
-				})
-			end,
-		},
-	})
+local function to_files(_, opts)
+	require("fzf-lua").files({ query = opts and opts.last_query or "" })
 end
 
 return {
@@ -101,18 +30,25 @@ return {
 	opts = {},
 	keys = {
 		{
-			"<leader>fd",
-			function()
-				require("fzf-lua").diagnostics_document()
-			end,
-			desc = "[f]ind [d]iagnostics (diagnostics_document())",
-		},
-		{
 			"<leader>ff",
 			function()
-				require("fzf-lua").files()
+				require("fzf-lua").files({ actions = { ["ctrl-g"] = to_grep } })
 			end,
-			desc = "[f]ind [f]iles in CWD. (files())",
+			desc = "[f]ind [f]iles in cwd (C-g → grep)",
+		},
+		{
+			"<leader>fg",
+			function()
+				require("fzf-lua").live_grep({ actions = { ["ctrl-f"] = to_files } })
+			end,
+			desc = "[f]ind by [g]rep in cwd (C-f → files)",
+		},
+		{
+			"<leader>fr",
+			function()
+				require("fzf-lua").oldfiles()
+			end,
+			desc = "[f]ind [r]ecent files (oldfiles())",
 		},
 		{
 			"<leader>fh",
@@ -129,11 +65,32 @@ return {
 			desc = "[f]ind [k]eymaps (keymaps())",
 		},
 		{
-			"<leader>fr",
+			"<leader>fd",
 			function()
-				require("fzf-lua").oldfiles()
+				require("fzf-lua").diagnostics_document()
 			end,
-			desc = "[f]ind [r]ecent files (oldfiles())",
+			desc = "[f]ind [d]iagnostics (diagnostics_document())",
+		},
+		{
+			"<leader>fb",
+			function()
+				require("fzf-lua").builtin()
+			end,
+			desc = "[f]zf [b]uiltin pickers (builtin())",
+		},
+		{
+			"<leader>fn",
+			function()
+				require("fzf-lua").live_grep({ cwd = vim.fn.stdpath("config") })
+			end,
+			desc = "[f]ind in [n]eovim config (live_grep())",
+		},
+		{
+			"<leader>fp",
+			function()
+				require("fzf-lua").live_grep({ cwd = vim.fn.stdpath("data") .. "/lazy/" })
+			end,
+			desc = "[f]ind in neovim [p]lugins (live_grep())",
 		},
 		{
 			"<leader>fw",
@@ -148,50 +105,6 @@ return {
 				require("fzf-lua").grep_cWORD()
 			end,
 			desc = "[f]ind [W]ord under cursor - longer token including punctuation / whitespace (grep_cWORD())",
-		},
-		{
-			"<leader>sf",
-			function()
-				require("fzf-lua").live_grep()
-			end,
-			desc = "[s]earch [f]iles in CWD. (live_grep())",
-		},
-		{
-			"<leader>sn",
-			function()
-				require("fzf-lua").live_grep({ cwd = vim.fn.stdpath("config") })
-			end,
-			desc = "[s]earch [n]eovim configs. (live_grep())",
-		},
-		{
-			"<leader>sp",
-			function()
-				require("fzf-lua").live_grep({
-					cwd = vim.fn.stdpath("data") .. "/lazy/",
-				})
-			end,
-			desc = "[s]earch neovim [p]lugins (live_grep())",
-		},
-		{
-			"<leader>sB",
-			function()
-				require("fzf-lua").builtin()
-			end,
-			desc = "[s]earch [B]uiltin (builtin())",
-		},
-		{
-			"<leader>sd",
-			function()
-				grep_dotfiles()
-			end,
-			desc = "[s]earch [d]otfiles (~) (live_grep)",
-		},
-		{
-			"<leader>sr",
-			function()
-				choose_root_and_grep()
-			end,
-			desc = "[s]elect [r]oot and grep (live_grep)",
 		},
 		{
 			"<leader><leader>",
