@@ -55,8 +55,10 @@ else
 		paste = {
 			-- Request UTF8_STRING: WSLg/Wayland owners don't offer the legacy
 			-- STRING target, which caused "target STRING not available".
+			-- WSLg has no primary-selection owner, so * aliases clipboard;
+			-- reading unowned primary errored "target STRING not available".
 			["+"] = "xclip -selection clipboard -out -t UTF8_STRING",
-			["*"] = "xclip -selection primary -out -t UTF8_STRING",
+			["*"] = "xclip -selection clipboard -out -t UTF8_STRING",
 		},
 		cache_enabled = 1,
 	}
