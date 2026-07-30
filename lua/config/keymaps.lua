@@ -23,6 +23,39 @@ vim.keymap.set("n", "<leader>Ls", "<cmd>Lazy sync<cr>", { desc = "[L]azy sync" }
 vim.keymap.set("n", "<leader>k", "<cmd>bnext<cr>", { desc = "[k] buffer next" })
 vim.keymap.set("n", "<leader>j", "<cmd>bprev<cr>", { desc = "[j] buffer prev" })
 
+local capture_root = vim.fn.fnamemodify(vim.fn.stdpath("state"), ":h") .. "/capture"
+
+local function capture(line1, line2)
+	vim.fn.mkdir(capture_root, "p")
+	local slug = vim.fn.fnamemodify(vim.fn.getcwd(), ":t"):lower()
+		:gsub("[^%w]+", "-"):gsub("^%-+", ""):gsub("%-+$", "")
+	local base = ("%s/%s-%s"):format(
+		capture_root,
+		os.date("%Y%m%dT%H%M%S"),
+		slug ~= "" and slug or "capture"
+	)
+	local file, n = base .. ".md", 2
+	while (vim.uv or vim.loop).fs_stat(file) do
+		file = ("%s-%d.md"):format(base, n)
+		n = n + 1
+	end
+
+	local lines = vim.api.nvim_buf_get_lines(0, line1 - 1, line2, false)
+	if vim.fn.writefile(lines, file, "s") ~= 0 then
+		vim.notify("capture failed → " .. file, vim.log.levels.ERROR)
+		return
+	end
+	vim.notify("captured → " .. file)
+end
+
+vim.api.nvim_create_user_command("Capture", function(args)
+	capture(args.line1, args.line2)
+end, { range = "%", desc = "Capture buffer or selected lines" })
+
+vim.keymap.set("n", "<leader>bn", "<cmd>enew<cr>", { desc = "[b]uffer [n]ew" })
+vim.keymap.set("n", "<leader>bc", "<cmd>Capture<cr>", { desc = "[b]uffer [c]apture" })
+vim.keymap.set("x", "<leader>bc", ":Capture<cr>", { desc = "[b]uffer [c]apture selection" })
+
 -- Clear highlights on search when pressing <Esc> in normal mode
 --  See `:help hlsearch`
 vim.keymap.set("n", "<Esc>", "<cmd>nohlsearch<CR>")
