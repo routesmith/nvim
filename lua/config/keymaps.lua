@@ -24,6 +24,7 @@ vim.keymap.set("n", "<leader>k", "<cmd>bnext<cr>", { desc = "[k] buffer next" })
 vim.keymap.set("n", "<leader>j", "<cmd>bprev<cr>", { desc = "[j] buffer prev" })
 
 local capture_root = vim.fn.fnamemodify(vim.fn.stdpath("state"), ":h") .. "/capture"
+local uv = vim.uv or vim.loop
 
 local function capture(line1, line2)
 	vim.fn.mkdir(capture_root, "p")
@@ -35,7 +36,7 @@ local function capture(line1, line2)
 		slug ~= "" and slug or "capture"
 	)
 	local file, n = base .. ".md", 2
-	while (vim.uv or vim.loop).fs_stat(file) do
+	while uv.fs_stat(file) do
 		file = ("%s-%d.md"):format(base, n)
 		n = n + 1
 	end
@@ -48,13 +49,60 @@ local function capture(line1, line2)
 	vim.notify("captured → " .. file)
 end
 
+local function promote()
+	vim.ui.input({ prompt = "Promote capture as: " }, function(name)
+		if name == nil or name == "" then
+			return
+		end
+		if name == "." or name == ".." or name:find("[/\\\\]") then
+			vim.notify("promotion requires a filename without path separators", vim.log.levels.ERROR)
+			return
+		end
+		if vim.fn.fnamemodify(name, ":e") == "" then
+			name = name .. ".md"
+		end
+
+		local file = capture_root .. "/" .. name
+		if uv.fs_lstat(file) then
+			vim.notify("promotion refused; destination exists → " .. file, vim.log.levels.ERROR)
+			return
+		end
+		if vim.fn.mkdir(capture_root, "p") == 0 then
+			vim.notify("promotion failed; could not create capture directory", vim.log.levels.ERROR)
+			return
+		end
+
+		local ok, err = pcall(vim.cmd, "saveas " .. vim.fn.fnameescape(file))
+		if not ok then
+			vim.notify("promotion failed → " .. err, vim.log.levels.ERROR)
+		end
+	end)
+end
+
+local function find_capture()
+	if vim.fn.isdirectory(capture_root) == 0 then
+		vim.notify("no captures: capture directory does not exist")
+		return
+	end
+	if #vim.fn.readdir(capture_root) == 0 then
+		vim.notify("no captures: capture directory is empty")
+		return
+	end
+	require("fzf-lua").files({ cwd = capture_root })
+end
+
 vim.api.nvim_create_user_command("Capture", function(args)
 	capture(args.line1, args.line2)
 end, { range = "%", desc = "Capture buffer or selected lines" })
 
+vim.api.nvim_create_user_command("Promote", promote, { desc = "Promote current buffer into capture inbox" })
+
 vim.keymap.set("n", "<leader>bn", "<cmd>enew<cr>", { desc = "[b]uffer [n]ew" })
 vim.keymap.set("n", "<leader>bc", "<cmd>Capture<cr>", { desc = "[b]uffer [c]apture" })
 vim.keymap.set("x", "<leader>bc", ":Capture<cr>", { desc = "[b]uffer [c]apture selection" })
+vim.keymap.set("n", "<leader>bw", "<cmd>write<cr>", { desc = "[b]uffer [w]rite" })
+vim.keymap.set("n", "<leader>bp", "<cmd>Promote<cr>", { desc = "[b]uffer [p]romote to capture" })
+vim.keymap.set("n", "<leader>bf", find_capture, { desc = "[b]uffer [f]ind captures" })
 
 -- Clear highlights on search when pressing <Esc> in normal mode
 --  See `:help hlsearch`
@@ -69,12 +117,12 @@ vim.keymap.set("n", "gl", function()
 end, { desc = "Open diagnostics at cursor in floating window" })
 
 --  See `:help wincmd` for a list of all window commands
-vim.keymap.set("n", "<C-h>", "<C-w><C-h>", { desc = "Move focus to the left window" })
-vim.keymap.set("n", "<C-l>", "<C-w><C-l>", { desc = "Move focus to the right window" })
-vim.keymap.set("n", "<C-j>", "<C-w><C-j>", { desc = "Move focus to the lower window" })
-vim.keymap.set("n", "<C-k>", "<C-w><C-k>", { desc = "Move focus to the upper window" })
-vim.keymap.set("n", "<Leader>wv", "<C-W>t<C-W>H<C-W><C-W>", { desc = "Split [w]indow horizontal → [v]ertical" })
-vim.keymap.set("n", "<Leader>wh", "<C-W>t<C-W>K<C-W><C-W>", { desc = "Split [w]indow vertical → [h]orizontal" })
+vim.keymap.set("n", "<leader>wh", "<C-w><C-h>", { desc = "Move focus to the left window" })
+vim.keymap.set("n", "<leader>wj", "<C-w><C-j>", { desc = "Move focus to the lower window" })
+vim.keymap.set("n", "<leader>wk", "<C-w><C-k>", { desc = "Move focus to the upper window" })
+vim.keymap.set("n", "<leader>wl", "<C-w><C-l>", { desc = "Move focus to the right window" })
+vim.keymap.set("n", "<leader>wH", "<C-W>t<C-W>K<C-W><C-W>", { desc = "Split [w]indow vertical → [H]orizontal" })
+vim.keymap.set("n", "<leader>wV", "<C-W>t<C-W>H<C-W><C-W>", { desc = "Split [w]indow horizontal → [V]ertical" })
 
 vim.keymap.set("n", "DS", [[:%s/[ <Tab>]//g<CR>]], { desc = "Delete all spaces and tabs" })
 vim.keymap.set("n", "DR", [[:g/^$/d<CR>]], { desc = "Delete empty lines" })
