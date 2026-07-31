@@ -53,6 +53,7 @@ return {
 				{ "<leader>b", group = "[b]uffer" },
 				{ "<leader>f", group = "[f]ind (files ≡ grep)" },
 				{ "<leader>h", group = "Git [h]unk", mode = { "n", "v" } },
+				{ "<leader>m", group = "[m]arkdown" },
 				{ "<leader>t", group = "[t]oggle" },
 				{ "<leader>z", group = "[z]oxide" },
 				{ "s", group = "[s]urround", mode = { "n", "v" } },

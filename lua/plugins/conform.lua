@@ -52,7 +52,7 @@ return { -- Autoformat
 			local default_timeout = 500
 			local timeout_override = { php = 5000 }
 			-- Disable formatting on save completely for certain languages
-			local disable_filetypes = {}
+			local disable_filetypes = { markdown = true }
 
 			local lsp_format_opt
 			if disable_lsp_filetypes[vim.bo[bufnr].filetype] then
@@ -89,6 +89,7 @@ return { -- Autoformat
 			javascript = { "prettierd", "prettier", stop_after_first = true },
 			typescript = { "prettierd", "prettier", stop_after_first = true },
 			json = { "prettierd", "prettier", stop_after_first = true },
+			markdown = { "prettierd", "prettier", stop_after_first = true },
 			yaml = { "prettierd" },
 			sh = { "shfmt" },
 			c = { "clang-format" },
