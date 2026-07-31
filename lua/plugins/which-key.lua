@@ -51,7 +51,6 @@ return {
 			-- Document existing key chains
 			spec = {
 				{ "<leader>b", group = "[b]uffer" },
-				{ "<leader>w", group = "[w]indow" },
 				{ "<leader>f", group = "[f]ind (files ≡ grep)" },
 				{ "<leader>h", group = "Git [h]unk", mode = { "n", "v" } },
 				{ "<leader>m", group = "[m]arkdown" },

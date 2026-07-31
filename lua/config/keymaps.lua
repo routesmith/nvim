@@ -116,14 +116,6 @@ vim.keymap.set("n", "gl", function()
 	vim.diagnostic.open_float()
 end, { desc = "Open diagnostics at cursor in floating window" })
 
---  See `:help wincmd` for a list of all window commands
-vim.keymap.set("n", "<leader>wh", "<C-w><C-h>", { desc = "Move focus to the left window" })
-vim.keymap.set("n", "<leader>wj", "<C-w><C-j>", { desc = "Move focus to the lower window" })
-vim.keymap.set("n", "<leader>wk", "<C-w><C-k>", { desc = "Move focus to the upper window" })
-vim.keymap.set("n", "<leader>wl", "<C-w><C-l>", { desc = "Move focus to the right window" })
-vim.keymap.set("n", "<leader>wH", "<C-W>t<C-W>K<C-W><C-W>", { desc = "Split [w]indow vertical → [H]orizontal" })
-vim.keymap.set("n", "<leader>wV", "<C-W>t<C-W>H<C-W><C-W>", { desc = "Split [w]indow horizontal → [V]ertical" })
-
 vim.keymap.set("n", "DS", [[:%s/[ <Tab>]//g<CR>]], { desc = "Delete all spaces and tabs" })
 vim.keymap.set("n", "DR", [[:g/^$/d<CR>]], { desc = "Delete empty lines" })
 vim.keymap.set("n", "DE", [[:g/^[\t ]*$/d<CR>]], { desc = "Delete empty or whitespace-only lines" })
