@@ -62,7 +62,7 @@ function M.get(opts)
 	end
 
 	local representation = opts.representation or "absolute"
-	if representation ~= "absolute" and representation ~= "home" then
+	if representation ~= "absolute" and representation ~= "home" and representation ~= "filename" then
 		return nil, ("unknown buffer reference representation: %s"):format(representation)
 	end
 
@@ -73,6 +73,9 @@ function M.get(opts)
 
 	if representation == "home" then
 		return home_representation(path)
+	end
+	if representation == "filename" then
+		return vim.fn.fnamemodify(path, ":t")
 	end
 
 	return path
