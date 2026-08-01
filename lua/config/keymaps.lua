@@ -4,8 +4,9 @@
 -- Docs: https://neovim.io/doc/user/map.html
 -- Help: :help vim.keymap.set
 
--- Pull in zoxide_nav
+-- Pull in focused reusable modules.
 require("config.zoxide_nav").setup()
+local buffer_reference = require("config.buffer_reference")
 
 -- Naked `S` is unbound in normal mode (use `cc` instead). `s` is left as
 -- Vim's default substitute-char so it can serve as the prefix for
@@ -22,6 +23,17 @@ vim.keymap.set("n", "<leader>Ls", "<cmd>Lazy sync<cr>", { desc = "[L]azy sync" }
 -- Buffer stuff
 vim.keymap.set("n", "<leader>k", "<cmd>bnext<cr>", { desc = "[k] buffer next" })
 vim.keymap.set("n", "<leader>j", "<cmd>bprev<cr>", { desc = "[j] buffer prev" })
+
+local function copy_buffer_reference(representation)
+	local reference, err = buffer_reference.get({ representation = representation })
+	if not reference then
+		vim.notify(err, vim.log.levels.ERROR)
+		return
+	end
+
+	vim.fn.setreg("+", reference, "c")
+	vim.notify(("copied %s buffer reference"):format(representation))
+end
 
 local capture_root = vim.fn.fnamemodify(vim.fn.stdpath("state"), ":h") .. "/capture"
 local uv = vim.uv or vim.loop
@@ -97,6 +109,12 @@ end, { range = "%", desc = "Capture buffer or selected lines" })
 
 vim.api.nvim_create_user_command("Promote", promote, { desc = "Promote current buffer into capture inbox" })
 
+vim.keymap.set("n", "<leader>bh", function()
+	copy_buffer_reference("home")
+end, { desc = "[b]uffer [h]ome reference" })
+vim.keymap.set("n", "<leader>ba", function()
+	copy_buffer_reference("absolute")
+end, { desc = "[b]uffer [a]bsolute reference" })
 vim.keymap.set("n", "<leader>bn", "<cmd>enew<cr>", { desc = "[b]uffer [n]ew" })
 vim.keymap.set("n", "<leader>bc", "<cmd>Capture<cr>", { desc = "[b]uffer [c]apture" })
 vim.keymap.set("x", "<leader>bc", ":Capture<cr>", { desc = "[b]uffer [c]apture selection" })
