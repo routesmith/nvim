@@ -6,7 +6,9 @@
 
 -- Pull in focused reusable modules.
 require("config.zoxide_nav").setup()
+local artifact_browser = require("config.artifact_browser")
 local buffer_reference = require("config.buffer_reference")
+artifact_browser.setup()
 
 -- Naked `S` is unbound in normal mode (use `cc` instead). `s` is left as
 -- Vim's default substitute-char so it can serve as the prefix for
@@ -35,7 +37,7 @@ local function copy_buffer_reference(representation)
 	vim.notify(("copied %s buffer reference"):format(representation))
 end
 
-local capture_root = vim.fn.fnamemodify(vim.fn.stdpath("state"), ":h") .. "/capture"
+local capture_root = artifact_browser.root()
 local uv = vim.uv or vim.loop
 
 local function capture(line1, line2)
@@ -91,18 +93,7 @@ local function promote()
 	end)
 end
 
-local function find_capture()
-	if vim.fn.isdirectory(capture_root) == 0 then
-		vim.notify("no captures: capture directory does not exist")
-		return
-	end
-	if #vim.fn.readdir(capture_root) == 0 then
-		vim.notify("no captures: capture directory is empty")
-		return
-	end
-	require("fzf-lua").files({ cwd = capture_root })
-end
-
+vim.keymap.set("n", "<leader>bf", artifact_browser.open, { desc = "[b]uffer [f]ind Capture artifacts" })
 vim.api.nvim_create_user_command("Capture", function(args)
 	capture(args.line1, args.line2)
 end, { range = "%", desc = "Capture buffer or selected lines" })
@@ -123,7 +114,6 @@ vim.keymap.set("n", "<leader>bc", "<cmd>Capture<cr>", { desc = "[b]uffer [c]aptu
 vim.keymap.set("x", "<leader>bc", ":Capture<cr>", { desc = "[b]uffer [c]apture selection" })
 vim.keymap.set("n", "<leader>bw", "<cmd>write<cr>", { desc = "[b]uffer [w]rite" })
 vim.keymap.set("n", "<leader>bp", "<cmd>Promote<cr>", { desc = "[b]uffer [p]romote to capture" })
-vim.keymap.set("n", "<leader>bf", find_capture, { desc = "[b]uffer [f]ind captures" })
 
 -- Clear highlights on search when pressing <Esc> in normal mode
 --  See `:help hlsearch`
