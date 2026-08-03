@@ -17,3 +17,6 @@ Thumbs.db
 # Logs and caches
 *.log
 .luarc.json
+
+# Host-local configuration
+lua/config/forge_projection.local.lua
