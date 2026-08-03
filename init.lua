@@ -12,6 +12,10 @@ require("config.options")
 require("config.keymaps")
 require("config.autocommands")
 
+local capture_provenance = require("config.capture_provenance")
+capture_provenance.setup()
+vim.keymap.set("n", "<leader>gp", capture_provenance.overview, { desc = "Git → Capture provenance" })
+
 vim.api.nvim_create_autocmd("BufWritePre", {
   callback = function(args)
     local clients = vim.lsp.get_clients({ bufnr = args.buf })
