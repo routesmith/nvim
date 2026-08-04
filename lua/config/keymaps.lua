@@ -6,6 +6,7 @@
 
 -- Pull in focused reusable modules.
 require("config.zoxide_nav").setup()
+require("config.artifact_thread").setup()
 local buffer_reference = require("config.buffer_reference")
 
 -- Naked `S` is unbound in normal mode (use `cc` instead). `s` is left as
@@ -61,33 +62,100 @@ local function capture(line1, line2)
 	vim.notify("captured → " .. file)
 end
 
+local function promote_as(name)
+	if name == nil or name == "" then
+		return
+	end
+	if name == "." or name == ".." or name:find("[/\\\\]") then
+		vim.notify("promotion requires a filename without path separators", vim.log.levels.ERROR)
+		return
+	end
+	if vim.fn.fnamemodify(name, ":e") == "" then
+		name = name .. ".md"
+	end
+
+	local file = capture_root .. "/" .. name
+	if uv.fs_lstat(file) then
+		vim.notify("promotion refused; destination exists → " .. file, vim.log.levels.ERROR)
+		return
+	end
+	if vim.fn.mkdir(capture_root, "p") == 0 then
+		vim.notify("promotion failed; could not create capture directory", vim.log.levels.ERROR)
+		return
+	end
+
+	local ok, err = pcall(vim.cmd, "saveas " .. vim.fn.fnameescape(file))
+	if not ok then
+		vim.notify("promotion failed → " .. err, vim.log.levels.ERROR)
+	end
+end
+
+local function promote_manually()
+	vim.ui.input({ prompt = "Promote capture as: " }, promote_as)
+end
+
+-- Grammar is advisory. When the current buffer is a recognized artifact, offer
+-- candidate names continuing its thread; otherwise this is exactly the prompt
+-- it has always been. Manual entry is always one keystroke away, and any name
+-- typed there is accepted.
+local MANUAL = "Enter manually…"
+local NEW_SUBJECT = "New subject…"
+
+-- Intent-first. The ordinary path is new buffer → write → promote, where there
+-- is no artifact for grammar to read. So ask what this should become, then let
+-- grammar complete that intent: which thread it joins, and at what sequence.
+local function promote_from_intent()
+	local artifact_thread = require("config.artifact_thread")
+	local entries = artifact_thread.corpus()
+	local kinds = artifact_thread.kinds(entries)
+	if #kinds == 0 then
+		return promote_manually()
+	end
+
+	vim.ui.select(vim.list_extend(kinds, { MANUAL }), { prompt = "Promote as what?" }, function(kind)
+		if kind == nil then
+			return
+		end
+		if kind == MANUAL then
+			return promote_manually()
+		end
+
+		local names = artifact_thread.thread_candidates(entries, kind)
+		vim.ui.select(vim.list_extend(names, { NEW_SUBJECT }), {
+			prompt = kind .. " — which thread?",
+		}, function(choice)
+			if choice == nil then
+				return
+			end
+			if choice == NEW_SUBJECT then
+				-- Prefilled up to the subject, so only the subject is typed.
+				return vim.ui.input({
+					prompt = "Promote capture as: ",
+					default = ("%s--01--"):format(kind),
+				}, promote_as)
+			end
+			promote_as(choice)
+		end)
+	end)
+end
+
 local function promote()
-	vim.ui.input({ prompt = "Promote capture as: " }, function(name)
-		if name == nil or name == "" then
-			return
-		end
-		if name == "." or name == ".." or name:find("[/\\\\]") then
-			vim.notify("promotion requires a filename without path separators", vim.log.levels.ERROR)
-			return
-		end
-		if vim.fn.fnamemodify(name, ":e") == "" then
-			name = name .. ".md"
-		end
+	local candidates = require("config.artifact_thread").promotion_candidates(
+		vim.fn.fnamemodify(vim.api.nvim_buf_get_name(0), ":t")
+	)
+	if #candidates == 0 then
+		return promote_from_intent()
+	end
 
-		local file = capture_root .. "/" .. name
-		if uv.fs_lstat(file) then
-			vim.notify("promotion refused; destination exists → " .. file, vim.log.levels.ERROR)
+	local items = vim.list_extend(vim.deepcopy(candidates), { MANUAL })
+	vim.ui.select(items, { prompt = "Promote as:" }, function(choice)
+		if choice == nil then
 			return
 		end
-		if vim.fn.mkdir(capture_root, "p") == 0 then
-			vim.notify("promotion failed; could not create capture directory", vim.log.levels.ERROR)
-			return
+		if choice == MANUAL then
+			return promote_manually()
 		end
-
-		local ok, err = pcall(vim.cmd, "saveas " .. vim.fn.fnameescape(file))
-		if not ok then
-			vim.notify("promotion failed → " .. err, vim.log.levels.ERROR)
-		end
+		promote_as(choice)
 	end)
 end
 
