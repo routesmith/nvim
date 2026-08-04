@@ -269,7 +269,6 @@ return {
 					},
 				},
 			},
-			marksman = {},
 		}
 
 		-- Ensure the servers and tools above are installed
@@ -290,7 +289,6 @@ return {
 			"stylua", -- Used to format Lua code
 			"prettierd", -- Used to format Javascript and typescript code
 			"prettier", -- Used to format Javascript and typescript code
-			"marksman", -- Markdown language server
 			"shfmt", -- Used for sh, bash
 			"pyright", -- Python LSP maintained by Microsoft
 			"ruff", -- Python LSP with
